@@ -376,8 +376,7 @@ double rms(vector<long long> array) {
 	}
 #endif
 #if 1
-	//@NOTE skip last element, possibly more accurate for small follower lists
-	// or two elements
+	//@NOTE skip max element, possibly more accurate for small follower lists
 	std::sort(array.begin(), array.end());
 	for (int i = 0; i < array.size() - 1; ++i) {
 		sum += array[i] * array[i];
