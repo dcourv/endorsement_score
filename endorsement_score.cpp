@@ -170,7 +170,9 @@ vector<TweetInfo> tweet_ids_to_tweet_info_list(vector<string> tweet_ids) {
 		request_url += ",";
 	}
 	request_url += tweet_ids.back();
-	request_url += "&tweet.fields=public_metrics,referenced_tweets&expansions=author_id";
+	request_url +=
+		"&tweet.fields=public_metrics,referenced_tweets&expansions=author_id,"
+		"referenced_tweets.id";
 
 	auto response_json =
 		http_single_request_to_json(request_url, TWITTER_BEARER_TOKEN);
@@ -181,13 +183,30 @@ vector<TweetInfo> tweet_ids_to_tweet_info_list(vector<string> tweet_ids) {
 	// @TODO try catch?
 	auto response_json_data = response_json["data"];
 
+	auto includes_json = response_json["includes"];
+
 	unordered_map<string, int> author_id_to_include_index;
-	for (int i = 0; i < response_json["includes"]["users"].size(); ++i) {
+	for (int i = 0; i < includes_json["users"].size(); ++i) {
 		// @TODO try catch?
-		auto user_json = response_json["includes"]["users"][i];
+		auto user_json = includes_json["users"][i];
 		string user_id = user_json["id"].get<string>();
 		author_id_to_include_index[user_id] = i;
 	}
+
+	unordered_map<string, long long> included_tweet_id_to_likes;
+
+	for (auto included_tweet_json : includes_json["tweets"]) {
+		// @TODO try catch?
+		string id = included_tweet_json["id"].get<string>();
+		long long likes
+			= included_tweet_json["public_metrics"]["like_count"].get<long long>();
+		included_tweet_id_to_likes[id] = likes;
+	}
+
+	// @LOG
+	// for (auto map_it : included_tweet_id_to_likes) {
+	// 	cout << map_it.first << ": " << map_it.second << endl;
+	// }
 
 	for (int i = 0; i < response_json_data.size(); ++i) {
 		TweetInfo info {};
@@ -211,9 +230,6 @@ vector<TweetInfo> tweet_ids_to_tweet_info_list(vector<string> tweet_ids) {
 			auto public_metrics_json = tweet_json["public_metrics"];
 			info.share_count = public_metrics_json["retweet_count"].get<long long>();
 			info.reply_count = public_metrics_json["reply_count"].get<long long>();
-			// @TODO crawl retweeted tweets for accurate like count?
-			info.like_count = public_metrics_json["like_count"].get<long long>();
-			info.quote_count = public_metrics_json["quote_count"].get<long long>(); 
 
 			auto referenced_tweets_json = tweet_json["referenced_tweets"];
 			for (auto referenced_tweet_json : referenced_tweets_json) {
@@ -225,6 +241,16 @@ vector<TweetInfo> tweet_ids_to_tweet_info_list(vector<string> tweet_ids) {
 				// cout << "is rewteet: " << info.is_retweet << endl;
 				// cout << "retweeted_tweet_id: " << info.retweeted_tweet_id << endl;
 			}
+
+			// @NOTE if the tweet is a retweet, likes (and possibly other public
+			// metrics?) will be zero; use data from retweeted tweet
+			info.like_count =
+				info.is_retweet ?
+					included_tweet_id_to_likes[info.retweeted_tweet_id] :
+					public_metrics_json["like_count"].get<long long>();
+			
+			// @NOTE does same apply here?
+			info.quote_count = public_metrics_json["quote_count"].get<long long>(); 
 
 			// @LOG
 			cout << "Calculating score for tweet " << i << "..." << endl;
@@ -253,11 +279,6 @@ vector<TweetInfo> tweet_ids_to_tweet_info_list(vector<string> tweet_ids) {
 
 	return display_info_list;
 }
-
-// @NOTE
-// GET https://api.twitter.com/1.1/statuses/show.json?id=210462857140252672
-// https://developer.twitter.com/en/docs/twitter-api/v1/tweets/
-// post-and-engage/api-reference/get-statuses-show-id
 
 int main(int argc, char const *argv[]) {
 
@@ -314,9 +335,9 @@ int main(int argc, char const *argv[]) {
 	if (TWITTER_BEARER_TOKEN == "") {
 		throw (
 			std::runtime_error(
-				BOLD_ON "\nError: " BOLD_OFF "failed to find Twitter API bearer token. Please put"
-				" your entire bearer token in a one-line file \"twitter_bearer_token"
-				".txt\" in this directory."
+				BOLD_ON "\nError: " BOLD_OFF "failed to find Twitter API bearer token."
+				" Please put your entire bearer token in a one-line file "
+				"\"twitter_bearer_token.txt\" in this directory."
 			)
 		);
 	}
@@ -346,6 +367,7 @@ int main(int argc, char const *argv[]) {
 			cout << display_info.text << endl;
 			cout << endl;
 			cout << "Link to original tweet: " << display_info.url << endl;
+			// @NOTE name constants?
 			if (display_info.like_count > 5'000) {
 				cout << /*BOLD_ON << */"Warning: "/* << BOLD_OFF*/;
 				if (display_info.like_count > 50'000) {
@@ -356,6 +378,9 @@ int main(int argc, char const *argv[]) {
 				// @NOTE can increase number of pages returned for more accurate results
 				// but that consume more API calls
 				cout << " Endorsement score may be variable or inaccurate." << endl;
+			} else if (display_info.like_count <= 10) {
+				cout << "Warning: low like count. Endorsement score may be variable or"
+					" inaccurate" << endl;
 			}
 			cout << "Endorsement score: " << display_info.endorsement_score << " | ";
 			// cout << "likes: " << display_info.like_count << ", ";
