@@ -50,7 +50,7 @@ typedef struct {
 
 	bool is_retweet;
 	string retweeted_tweet_id;
-} TweetDisplayInfo;
+} TweetInfo;
 
 nlohmann::basic_json<>
 http_single_request_to_json(const string url, const string bearer_token = "") {
@@ -108,7 +108,7 @@ mastodon_status_id_to_followers_list(const string status_id) {
 // @TODO name page numbers constant?
 // @TODO return api calls consumed!
 vector<long long>
-twitter_tweet_id_to_liking_followers_list(
+tweet_id_to_liking_followers_list(
 	const string tweet_id,
 	int number_of_pages = 10
 ) {
@@ -162,7 +162,7 @@ twitter_tweet_id_to_liking_followers_list(
 	return follower_counts;
 }
 
-vector<TweetDisplayInfo> tweet_ids_to_display_info(vector<string> tweet_ids) {
+vector<TweetInfo> tweet_ids_to_tweet_info_list(vector<string> tweet_ids) {
 
 	string request_url = "https://api.twitter.com/2/tweets?ids=";
 	for (int i = 0; i < tweet_ids.size() - 1; ++i) {
@@ -177,7 +177,7 @@ vector<TweetDisplayInfo> tweet_ids_to_display_info(vector<string> tweet_ids) {
 	// @DEBUG
 	// cout << response_json << endl;
 
-	vector<TweetDisplayInfo> display_info_list {};
+	vector<TweetInfo> display_info_list {};
 	// @TODO try catch?
 	auto response_json_data = response_json["data"];
 
@@ -190,7 +190,7 @@ vector<TweetDisplayInfo> tweet_ids_to_display_info(vector<string> tweet_ids) {
 	}
 
 	for (int i = 0; i < response_json_data.size(); ++i) {
-		TweetDisplayInfo info {};
+		TweetInfo info {};
 		try {
 			auto tweet_json = response_json_data[i];
 			info.id = tweet_json["id"].get<string>();
@@ -225,6 +225,22 @@ vector<TweetDisplayInfo> tweet_ids_to_display_info(vector<string> tweet_ids) {
 				// cout << "is rewteet: " << info.is_retweet << endl;
 				// cout << "retweeted_tweet_id: " << info.retweeted_tweet_id << endl;
 			}
+
+			// @LOG
+			cout << "Calculating score for tweet " << i << "..." << endl;
+			vector<long long> followers_list;
+			if (info.is_retweet) {
+				followers_list =
+					tweet_id_to_liking_followers_list(
+						info.retweeted_tweet_id
+					);
+			}
+			else {
+				followers_list = tweet_id_to_liking_followers_list(info.id);
+			}
+
+			info.endorsement_score = rms(followers_list);
+
 		}
 		catch (json::exception &e) {
 			// @DEBUG
@@ -306,49 +322,14 @@ int main(int argc, char const *argv[]) {
 	}
 
 	// @TODO rename to tweet info?
-	vector<TweetDisplayInfo> display_info_list =
+	vector<TweetInfo> tweet_info_list =
 		// @TODO generalize
 		(backend == Backend::TWITTER) ?
-			tweet_ids_to_display_info(ids) : vector<TweetDisplayInfo> {};
-
-	// @TODO generalize for mastodon
-	for (int i = 0; i < ids.size(); ++i) {
-		string id = ids[i];
-		// @LOG
-		cout << "Calculating score for tweet " << i << "..." << endl;
-		// @NOTE crawl retweets to avoid zero endorsement score
-		vector<long long> followers_list;
-		auto tweet_info = display_info_list[i];
-		if (tweet_info.is_retweet) {
-			followers_list =
-				twitter_tweet_id_to_liking_followers_list(
-					tweet_info.retweeted_tweet_id
-				);
-		}
-		else {
-			followers_list = twitter_tweet_id_to_liking_followers_list(id);
-		}
-
-		double endorsement_score = 0;
-		if (followers_list.size() > 0) {
-			endorsement_score = rms(followers_list);
-		}
-		// @DEBUG
-		// cout << "Followers list: ";
-		// for (auto elem : followers_list) {
-		// 	cout << elem << ' ';
-		// }
-		// cout << endl;
-		display_info_list[i].endorsement_score = endorsement_score;
-		// @TODO refine calculation
-		long long like_count = display_info_list[i].like_count;
-		display_info_list[i].composite_score =
-			endorsement_score * log(2 + like_count/200);
-	}
+			tweet_ids_to_tweet_info_list(ids) : vector<TweetInfo> {};
 
 	std::sort(
-		display_info_list.begin(),
-		display_info_list.end(),
+		tweet_info_list.begin(),
+		tweet_info_list.end(),
 		[](const auto &lhs, const auto& rhs) {
 			return lhs.endorsement_score > rhs.endorsement_score;
 			// return lhs.composite_score > rhs.composite_score;
@@ -358,7 +339,7 @@ int main(int argc, char const *argv[]) {
 	// @TODO generalize for both twitter and mastodon
 	if (backend == Backend::TWITTER) {
 		cout << "---------------------------" << endl;
-		for (auto display_info : display_info_list) {
+		for (auto display_info : tweet_info_list) {
 			cout << display_info.author_display_name << " (@"
 					 << display_info.author_username << "):" << endl;
 			cout << endl;
@@ -392,7 +373,7 @@ int main(int argc, char const *argv[]) {
 
 // @TODO refine score calculation
 double rms(vector<long long> array) {
-	if (array.size() == 0) {
+	if (array.size() < 2) {
 		return 0;
 	}
 
