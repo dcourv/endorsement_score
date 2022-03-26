@@ -47,6 +47,9 @@ typedef struct {
 
 	double endorsement_score;
 	double composite_score;
+
+	bool is_retweet;
+	string retweeted_tweet_id;
 } TweetDisplayInfo;
 
 nlohmann::basic_json<>
@@ -63,7 +66,7 @@ http_single_request_to_json(const string url, const string bearer_token = "") {
 		cerr << r.error.message << endl;
 	} else if (r.status_code >= 400) {
 		cerr << "Error [" << r.status_code << "] making request" << endl;
-		// @TODO test
+		cerr << "Url: " << url << endl;
 		cerr << r.text << endl;
 	}
 #if 0
@@ -103,10 +106,11 @@ mastodon_status_id_to_followers_list(const string status_id) {
 }
 
 // @TODO name page numbers constant?
+// @TODO return api calls consumed!
 vector<long long>
 twitter_tweet_id_to_liking_followers_list(
 	const string tweet_id,
-	int number_of_pages = 4
+	int number_of_pages = 10
 ) {
 	const string base_request_url =
 		"https://api.twitter.com/2/tweets/" + tweet_id + "/liking_users"
@@ -166,7 +170,7 @@ vector<TweetDisplayInfo> tweet_ids_to_display_info(vector<string> tweet_ids) {
 		request_url += ",";
 	}
 	request_url += tweet_ids.back();
-	request_url += "&tweet.fields=public_metrics&expansions=author_id";
+	request_url += "&tweet.fields=public_metrics,referenced_tweets&expansions=author_id";
 
 	auto response_json =
 		http_single_request_to_json(request_url, TWITTER_BEARER_TOKEN);
@@ -207,8 +211,20 @@ vector<TweetDisplayInfo> tweet_ids_to_display_info(vector<string> tweet_ids) {
 			auto public_metrics_json = tweet_json["public_metrics"];
 			info.share_count = public_metrics_json["retweet_count"].get<long long>();
 			info.reply_count = public_metrics_json["reply_count"].get<long long>();
+			// @TODO crawl retweeted tweets for accurate like count?
 			info.like_count = public_metrics_json["like_count"].get<long long>();
 			info.quote_count = public_metrics_json["quote_count"].get<long long>(); 
+
+			auto referenced_tweets_json = tweet_json["referenced_tweets"];
+			for (auto referenced_tweet_json : referenced_tweets_json) {
+				if (referenced_tweet_json["type"].get<string>() == "retweeted") {
+					info.is_retweet = true;
+					info.retweeted_tweet_id = referenced_tweet_json["id"].get<string>();
+				}
+				// @LOG
+				// cout << "is rewteet: " << info.is_retweet << endl;
+				// cout << "retweeted_tweet_id: " << info.retweeted_tweet_id << endl;
+			}
 		}
 		catch (json::exception &e) {
 			// @DEBUG
@@ -289,6 +305,7 @@ int main(int argc, char const *argv[]) {
 		);
 	}
 
+	// @TODO rename to tweet info?
 	vector<TweetDisplayInfo> display_info_list =
 		// @TODO generalize
 		(backend == Backend::TWITTER) ?
@@ -299,8 +316,19 @@ int main(int argc, char const *argv[]) {
 		string id = ids[i];
 		// @LOG
 		cout << "Calculating score for tweet " << i << "..." << endl;
-		vector<long long> followers_list =
-			twitter_tweet_id_to_liking_followers_list(id);
+		// @NOTE crawl retweets to avoid zero endorsement score
+		vector<long long> followers_list;
+		auto tweet_info = display_info_list[i];
+		if (tweet_info.is_retweet) {
+			followers_list =
+				twitter_tweet_id_to_liking_followers_list(
+					tweet_info.retweeted_tweet_id
+				);
+		}
+		else {
+			followers_list = twitter_tweet_id_to_liking_followers_list(id);
+		}
+
 		double endorsement_score = 0;
 		if (followers_list.size() > 0) {
 			endorsement_score = rms(followers_list);
