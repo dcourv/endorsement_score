@@ -1,6 +1,6 @@
 ## What is this all about? ##
 
-What if social media algorithms tried not to maximize only engagement, but *reputational engagement*? What if content was promoted not only on the basis of how many people engaged with that content, but also *the reputation of those who engage with that content*? This program is a first hack at trying to evaluate an "endorsement score" of tweets or Mastodon statuses, which attempts to gauge the average reputation of those who have engaged with it.
+What if social media algorithms tried not to maximize only engagement, but *reputational engagement?* What if content was promoted not only on the basis of how many people engaged with that content, but also *the reputation of those who engage with that content?* This program is a first hack at evaluating an "endorsement score" of tweets or Mastodon statuses, which attempts to gauge the average reputation of those who have engaged with it.
 
 ## Installation ##
 
@@ -23,8 +23,10 @@ Yay:
 
 `yay -S cpr nlohmann-json`
 
+For the Debian-based distros I tried, it seems you also have to install `libssl` (`libssl-dev` in apt) in order to build `cpr`.
+
 Then, clone the repository:
-`git clone https://github.com/dcourv/endorsement_score`
+`git clone https://github.com/dcourv/endorsement_score --recurse-submodules`
 
 And build:
 
