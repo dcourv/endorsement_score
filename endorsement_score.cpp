@@ -28,6 +28,12 @@ double rms(vector<long long> array);
 #define BOLD_ON "\e[1m"
 #define BOLD_OFF "\e[0m"
 
+#define TWITTER_MAX_LIKING_USERS_PAGES 10
+#define TWITTER_LIKING_USERS_RATE_LIMIT 75
+
+// @TODO does this need to be global?
+static int API_CALLS_CONSUMED = 0;
+
 // @TODO (!!!) crawl retweets
 
 // @TODO generalize
@@ -50,6 +56,8 @@ typedef struct {
 
 	bool is_retweet;
 	string retweeted_tweet_id;
+
+	bool was_reached_before_rate_limit;
 } TweetInfo;
 
 nlohmann::basic_json<>
@@ -76,6 +84,8 @@ http_single_request_to_json(const string url, const string bearer_token = "") {
 		cout << "Body:" << endl << r.text;
 	}
 #endif
+
+	++API_CALLS_CONSUMED;
 
 	if (r.text == "") {
 		cerr << "Error: empty body text from " << url << endl;
@@ -254,15 +264,27 @@ vector<TweetInfo> tweet_ids_to_tweet_info_list(vector<string> tweet_ids) {
 
 			// @LOG
 			cout << "Calculating score for tweet " << i << "..." << endl;
+
+			// @LOG
+			cout << "API calls consumed: " << API_CALLS_CONSUMED << endl;
+
 			vector<long long> followers_list;
-			if (info.is_retweet) {
-				followers_list =
-					tweet_id_to_liking_followers_list(
-						info.retweeted_tweet_id
-					);
+			if (API_CALLS_CONSUMED + TWITTER_MAX_LIKING_USERS_PAGES >
+			    TWITTER_LIKING_USERS_RATE_LIMIT) {
+				followers_list = vector<long long> {};
+				info.was_reached_before_rate_limit = false;
 			}
 			else {
-				followers_list = tweet_id_to_liking_followers_list(info.id);
+				if (info.is_retweet) {
+					followers_list =
+						tweet_id_to_liking_followers_list(
+							info.retweeted_tweet_id
+						);
+				}
+				else {
+					followers_list = tweet_id_to_liking_followers_list(info.id);
+				}
+				info.was_reached_before_rate_limit = true;
 			}
 
 			info.endorsement_score = rms(followers_list);
@@ -361,15 +383,15 @@ int main(int argc, char const *argv[]) {
 	if (backend == Backend::TWITTER) {
 		cout << "---------------------------" << endl;
 		for (auto display_info : tweet_info_list) {
-			cout << display_info.author_display_name << " (@"
-					 << display_info.author_username << "):" << endl;
+			cout << BOLD_ON << display_info.author_display_name << " (@"
+					 << display_info.author_username << "):" << BOLD_OFF << endl;
 			cout << endl;
 			cout << display_info.text << endl;
 			cout << endl;
 			cout << "Link to original tweet: " << display_info.url << endl;
 			// @NOTE name constants?
 			if (display_info.like_count > 5'000) {
-				cout << /*BOLD_ON << */"Warning: "/* << BOLD_OFF*/;
+				cout << BOLD_ON << "Warning: " << BOLD_OFF;
 				if (display_info.like_count > 50'000) {
 					cout << "Very high like count.";
 				} else {
@@ -378,8 +400,11 @@ int main(int argc, char const *argv[]) {
 				// @NOTE can increase number of pages returned for more accurate results
 				// but that consume more API calls
 				cout << " Endorsement score may be variable or inaccurate." << endl;
-			} else if (display_info.like_count <= 10) {
-				cout << "Warning: low like count. Endorsement score may be variable or"
+			}
+			// @TODO name constant
+			else if (display_info.like_count <= 10) {
+				cout << BOLD_ON "Warning: " BOLD_OFF 
+					"low like count. Endorsement score may be variable or"
 					" inaccurate" << endl;
 			}
 			cout << "Endorsement score: " << display_info.endorsement_score << " | ";
@@ -388,6 +413,15 @@ int main(int argc, char const *argv[]) {
 			// @TEST
 			// cout << "Composite score: " << display_info.composite_score << " | ";
 			cout << "Likes: " << display_info.like_count << endl;
+			if (!display_info.was_reached_before_rate_limit) {
+				// @TODO just wait in future when maxed out, tell user they can quit
+				// with control-c, then calculate additional tweets after 15min
+				cout << BOLD_ON "Warning: " << BOLD_OFF "Twitter API rate limit "
+					"reached. For an accurate endorsement score for this tweet, please "
+					"try again in ~15min. If you input more than 10-15 tweet ids with "
+					"high like counts, you are likely to max out the rate limit."
+					<< endl;
+			}
 			cout << "---------------------------" << endl;
 		}
 	}
