@@ -120,7 +120,7 @@ mastodon_status_id_to_followers_list(const string status_id) {
 vector<long long>
 tweet_id_to_liking_followers_list(
 	const string tweet_id,
-	int number_of_pages = 10
+	int number_of_pages = TWITTER_MAX_LIKING_USERS_PAGES
 ) {
 	const string base_request_url =
 		"https://api.twitter.com/2/tweets/" + tweet_id + "/liking_users"
@@ -275,14 +275,33 @@ vector<TweetInfo> tweet_ids_to_tweet_info_list(vector<string> tweet_ids) {
 				info.was_reached_before_rate_limit = false;
 			}
 			else {
+				// @TEST
+				// @TODO name constants?
+				int pages_to_request =
+					std::min(
+						info.like_count / 100 / 10,
+						(long long) TWITTER_MAX_LIKING_USERS_PAGES
+					);
+
+				if (pages_to_request == 0) {
+					pages_to_request = 1;
+				}
+
+				// @LOG
+				cout << "Requesting " << pages_to_request << " pages of likes from"
+					" a tweet with " << info.like_count << " likes." << endl;
+
 				if (info.is_retweet) {
+					// @TODO concat followers list of both tweet and retweet?
 					followers_list =
 						tweet_id_to_liking_followers_list(
-							info.retweeted_tweet_id
+							info.retweeted_tweet_id,
+							pages_to_request
 						);
 				}
 				else {
-					followers_list = tweet_id_to_liking_followers_list(info.id);
+					followers_list =
+						tweet_id_to_liking_followers_list(info.id, pages_to_request);
 				}
 				info.was_reached_before_rate_limit = true;
 			}
