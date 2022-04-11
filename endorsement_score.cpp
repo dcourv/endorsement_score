@@ -443,6 +443,8 @@ int main(int argc, char const *argv[]) {
 			}
 			cout << "---------------------------" << endl;
 		}
+
+		cout << BOLD_ON "^ scroll to top for tweet with highest endorsement score" BOLD_OFF << endl;
 	}
 
 	// @TODO re-add suppot for Mastodon?

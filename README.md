@@ -1,6 +1,10 @@
 ## What is this all about? ##
 
-What if social media algorithms tried not to maximize only engagement, but *reputational engagement?* What if content was promoted not only on the basis of how many people engaged with that content, but also *the reputation of those who engage with that content?* This program is a first hack at evaluating an "endorsement score" of tweets or Mastodon statuses, which attempts to gauge the average reputation of those who have engaged with it.
+[//]: <> (Tired of junk in your twitter feed? Read on) 
+
+What if social media algorithms tried not to maximize only engagement, but *reputational engagement?* What if content was promoted not only on the basis of how many people engaged with that content, but also *the reputation of those who engage with that content?*
+
+This program is a first hack at evaluating an "endorsement score" of tweets or Mastodon statuses, which attempts to gauge the average reputation of those who have engaged with it. If you input a list of tweet ids, it will determine the endorsement score for each tweet, and display each tweet as ranked by its endorsement score.
 
 [//]: <> (
 	Example of a tweets with open_paren relatively close_paren high endorsement scores:
