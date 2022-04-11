@@ -1,2 +1,2 @@
 #!/bin/sh
-./build/endorsement_score $@
+./b && ./build/endorsement_score $@
