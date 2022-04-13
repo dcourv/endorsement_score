@@ -25,7 +25,7 @@ Homebrew:
 
 `brew install cpr nlohmann-json`
 
-Apt (does not have cpr):
+Apt (does not include cpr):
 
 `apt install nlohmann-json3-dev`
 
@@ -49,8 +49,12 @@ The `endorsement_score` executable will be placed in the `build` directory.
 Lastly, put your Twitter API Bearer Token (see above) into a one-line file called `twitter_bearer_token.txt` in the directory that you cloned the repsoitory into. The program will not function without a valid Twitter API Bearer Token.
 
 ## Usage ##
-`./build/endorsement_score -t [ids]` where `[ids]` is a space-delimited string of Twitter status ids.
+`./build/endorsement_score -t` will prompt you to sign in to Twitter, and will fetch 50 recent Tweets from your timeline and rank them using a reputational engagement algorithm. (Note: I do not store of your data, it is all locally processed on your machine).
+
+You may also anonymously run the program (without signing into Twitter) with `./build/endorsement_score -t [ids]` where `[ids]` is a space-delimited string of Twitter status ids.
 
 Example: `./build/endorsement_score -t 1492120137205526528`
 
-You may also pass `-m` instead of `-t` and use a Mastodon status ids.
+Note that for either option, you will still need to have valid Twitter API keys.
+
+You may also pass `-m [ids]` instead of `-t [ids]` and use [Mastodon](https://joinmastodon.org/) status ids.

@@ -4,3 +4,6 @@
 [submodule "libraries/json"]
 	path = libraries/json
 	url = https://github.com/nlohmann/json
+[submodule "libraries/liboauthcpp"]
+	path = libraries/liboauthcpp
+	url = https://github.com/sirikata/liboauthcpp

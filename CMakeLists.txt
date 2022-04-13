@@ -3,9 +3,10 @@ project(endorsement_scores)
 
 set (CMAKE_CXX_STANDARD 14)
 
-#set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
-#set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
-#SET(CMAKE_CXX_FLAGS "-g -fno-omit-frame-pointer -fsanitize=address,undefined ${CMAKE_CXX_FLAGS}")
+# set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
+# set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
+# @TODO set up more general system for debug/release builds
+SET(CMAKE_CXX_FLAGS "-g -fno-omit-frame-pointer -fsanitize=address,undefined ${CMAKE_CXX_FLAGS}")
 
 find_package(cpr QUIET)
 if (NOT cpr_FOUND)
@@ -19,6 +20,10 @@ if (NOT nlohmann_json_FOUND)
 	add_subdirectory(libraries/json)
 endif()
 
+# @TODO make sure this is a submodule
+add_subdirectory(libraries/liboauthcpp/build)
+
 add_executable(endorsement_score endorsement_score.cpp)
 
-target_link_libraries(endorsement_score PRIVATE cpr::cpr PRIVATE nlohmann_json::nlohmann_json)
+target_include_directories(endorsement_score PRIVATE libraries/liboauthcpp/include)
+target_link_libraries(endorsement_score PRIVATE cpr::cpr PRIVATE nlohmann_json::nlohmann_json PRIVATE oauthcpp PRIVATE)

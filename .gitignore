@@ -1,5 +1,10 @@
 build
-twitter_bearer_token.txt
 twitter_feed.py
 info
 todo.txt
+
+twitter_api_key.txt
+twitter_api_secret.txt
+twitter_oauth_access_token_key.txt
+twitter_oauth_access_token_secret.txt
+twitter_bearer_token.txt
