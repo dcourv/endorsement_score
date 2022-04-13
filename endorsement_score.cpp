@@ -534,7 +534,10 @@ int main(int argc, char const *argv[]) {
 
 	// @TODO update with feed option
 	string help_message =
-		BOLD_ON "Usage: " BOLD_OFF "./endorsement_score [-t id ...] [-m id ...]\n"
+		BOLD_ON "Usage: " BOLD_OFF
+		"./endorsement_score [-t [id ...]] [-m id ...]\n"
+		"-t : fetch fifty tweets from your timeline and display them ranked "
+		"by endorsement score\n"
 		"-t id ... : calculate the endorsement scores for tweets with given id[s]"
 		"\n"
 		"-m id ... : calculate the endorsement scores for Mastodon statuses with"
