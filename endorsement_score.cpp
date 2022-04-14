@@ -27,17 +27,18 @@ enum class Backend { TWITTER, MASTODON };
 #define BOLD_OFF "\e[0m"
 
 #define TWITTER_MAX_LIKING_USERS_PAGES 10
+// @NOTE must be less than 200
+#define TWITTER_MAX_FETCHED_TWEETS 50
 #define TWITTER_LIKING_USERS_RATE_LIMIT 75
 
-// @TODO these don't need to be full `std::string`s
 static string TWITTER_BEARER_TOKEN;
-static string TWITTER_BEARER_TOKEN_URI = "twitter_bearer_token.txt";
+static const char *TWITTER_BEARER_TOKEN_URI = "twitter_bearer_token.txt";
 
 static string TWITTER_CONSUMER_KEY;
-static string TWITTER_CONSUMER_KEY_URI = "twitter_api_key.txt";
+static const char *TWITTER_CONSUMER_KEY_URI = "twitter_api_key.txt";
 
 static string TWITTER_CONSUMER_SECRET;
-static string TWITTER_CONSUMER_SECRET_URI = "twitter_api_secret.txt";
+static const char *TWITTER_CONSUMER_SECRET_URI = "twitter_api_secret.txt";
 
 // @TODO does this need to be global?
 static int API_CALLS_CONSUMED = 0;
@@ -247,12 +248,13 @@ string oauth_make_protected_resource_url(void) {
 		std::pair<OAuth::KeyValuePairs::iterator, OAuth::KeyValuePairs::iterator>
 		screen_name_its
 			= access_token_response_data.equal_range("screen_name");
-		for (OAuth::KeyValuePairs::iterator it = screen_name_its.first;
-		     it != screen_name_its.second;
-		     ++it) {
-			cout << "Also extracted screen name from access token response: "
-			     << it->second << endl;
-		}
+		// @LOG
+		// for (OAuth::KeyValuePairs::iterator it = screen_name_its.first;
+		//      it != screen_name_its.second;
+		//      ++it) {
+		// 	cout << "Using OAuth authentication for user: "
+		// 	     << it->second << endl;
+		// }
 
 		oauth_token_key = access_token.key();
 		oauth_token_secret = access_token.secret();
@@ -283,9 +285,6 @@ produce_oauth_protected_resource_url
 
 	// We assume you have gotten the access token. You may have e.g., used
 	// simple_auth to get it.
-	// if (oauth_token.empty()) oauth_token = get_user_string("Enter access token:");
-	// if (oauth_token_secret.empty()) oauth_token_secret = get_user_string("Enter
-	// access token secret:");
 
 	OAuth::Consumer consumer(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET);
 	OAuth::Token token(oauth_token, oauth_token_secret);
@@ -601,7 +600,10 @@ int main(int argc, char const *argv[]) {
 		// 	cout << tweet_id << endl;
 		// }
 
-		for (int i = tweet_ids.size() - 50; i < tweet_ids.size(); ++i) {
+		for (int i = tweet_ids.size() - TWITTER_MAX_FETCHED_TWEETS;
+		     i < tweet_ids.size();
+		     ++i)
+		{
 			ids.push_back(tweet_ids[i]);
 		}
 	}
