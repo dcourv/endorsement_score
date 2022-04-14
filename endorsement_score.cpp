@@ -120,7 +120,7 @@ string request_token_query_args = "oauth_callback=oob";
 string authorize_url = "https://api.twitter.com/oauth/authorize";
 string access_token_url = "https://api.twitter.com/oauth/access_token";
 
-string getUserString(string prompt) {
+string get_user_string(string prompt) {
 	cout << prompt << " ";
 
 	string res;
@@ -198,7 +198,7 @@ string oauth_make_protected_resource_url(void) {
 		// provider will redirect you to whatever URL you have told them
 		// to redirect to. You can usually define this in the
 		// oauth_callback argument as well.
-		string pin = getUserString("What is the PIN?");
+		string pin = get_user_string("What is the PIN?");
 		request_token.setPin(pin);
 
 		// Step 3: Once the consumer has redirected the user back to the
@@ -225,7 +225,7 @@ string oauth_make_protected_resource_url(void) {
 
 		// Once they've come back from the browser, extract the token and
 		// token_secret from the response
-		// string access_token_resp = getUserString("Enter the response:");
+		// string access_token_resp = get_user_string("Enter the response:");
 
 		// On this extractToken, we do the parsing ourselves (via the library) so we
 		// can extract additional keys that are sent back, in the case of twitter,
@@ -283,8 +283,8 @@ produce_oauth_protected_resource_url
 
 	// We assume you have gotten the access token. You may have e.g., used
 	// simple_auth to get it.
-	// if (oauth_token.empty()) oauth_token = getUserString("Enter access token:");
-	// if (oauth_token_secret.empty()) oauth_token_secret = getUserString("Enter
+	// if (oauth_token.empty()) oauth_token = get_user_string("Enter access token:");
+	// if (oauth_token_secret.empty()) oauth_token_secret = get_user_string("Enter
 	// access token secret:");
 
 	OAuth::Consumer consumer(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET);
@@ -560,32 +560,22 @@ int main(int argc, char const *argv[]) {
 		return 1;
 	}
 
-	// @TODO refactor into function?
-	// @TODO handle file not found exception
-	TWITTER_BEARER_TOKEN = read_file_to_string(TWITTER_BEARER_TOKEN_URI);
-
-	// @TODO ask for user input instead?
-	if (TWITTER_BEARER_TOKEN == "") {
-		throw (
-			std::runtime_error(
-				BOLD_ON "\nError: " BOLD_OFF "failed to find Twitter API bearer token."
-				" Please put your entire bearer token in a one-line file "
-				"\"twitter_bearer_token.txt\" in this directory."
-			)
-		);
-	}
-
-
 	TWITTER_CONSUMER_KEY = read_file_to_string(TWITTER_CONSUMER_KEY_URI);
 	if (TWITTER_CONSUMER_KEY.empty()) {
-		TWITTER_CONSUMER_KEY = getUserString("Enter consumer key:");
+		TWITTER_CONSUMER_KEY = get_user_string("Enter twitter api key:");
 		write_string_to_file(TWITTER_CONSUMER_KEY_URI, TWITTER_CONSUMER_KEY);
 	}
 
 	TWITTER_CONSUMER_SECRET = read_file_to_string(TWITTER_CONSUMER_SECRET_URI);
 	if (TWITTER_CONSUMER_SECRET.empty()) {
-		TWITTER_CONSUMER_SECRET = getUserString("Enter consumer secret:");
+		TWITTER_CONSUMER_SECRET = get_user_string("Enter twitter api key secret:");
 		write_string_to_file(TWITTER_CONSUMER_SECRET_URI, TWITTER_CONSUMER_SECRET);
+	}
+
+	TWITTER_BEARER_TOKEN = read_file_to_string(TWITTER_BEARER_TOKEN_URI);
+	if (TWITTER_BEARER_TOKEN.empty()) {
+		TWITTER_BEARER_TOKEN = get_user_string("Enter twitter bearer token:");
+		write_string_to_file(TWITTER_BEARER_TOKEN_URI, TWITTER_BEARER_TOKEN);
 	}
 
 	// @TODO clean up?
