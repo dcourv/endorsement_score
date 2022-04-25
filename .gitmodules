@@ -7,3 +7,6 @@
 [submodule "libraries/liboauthcpp"]
 	path = libraries/liboauthcpp
 	url = https://github.com/sirikata/liboauthcpp
+[submodule "libraries/mongoose"]
+	path = libraries/mongoose
+	url = https://github.com/cesanta/mongoose

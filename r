@@ -1,2 +1,2 @@
 #!/bin/sh
-./b && ./build/endorsement_score $@
+cmake --build build && ./build/endorsement_score $@
